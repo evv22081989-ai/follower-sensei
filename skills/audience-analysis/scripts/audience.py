@@ -1,28 +1,28 @@
 #!/usr/bin/env python3
-"""Анализ аудитории Instagram по CSV-выгрузкам подписчиков.
+"""Instagram audience analysis from CSV follower exports.
 
-Подходит для файлов из расширения Follower Tracker и из других сервисов: колонки
-(имя, ссылка или ник, статус) определяются автоматически по названиям и содержимому.
-Только стандартная библиотека Python, ничего не отправляет в сеть.
+Works with files from the Follower Tracker extension and from other services: columns
+(name, link or username, status) are detected automatically by header and content.
+Python standard library only; sends nothing to the network.
 
-Команды:
-  inspect FILE                 колонки, число строк, как распознаны имя, ссылка и статус
-  changes FILE                 таблица со статусами (новые / отписались / остались):
-                               цифры по группам, CSV по группам в --out-dir
-  compare OLD NEW              два списка за разные даты: кто пришёл и кто ушёл
-                               (--out-gained/--out-lost FILE — сохранить в CSV)
-  mutual FOLLOWERS FOLLOWING   взаимные, не подписаны в ответ, фанаты
-  profile FILE                 примерный состав аудитории по именам и никам (сводка)
-  sample FILE                  случайная выборка профилей для ручного разбора
+Commands:
+  inspect FILE                 columns, row count, how name, link and status were detected
+  changes FILE                 status table (new / unfollowed / stayed):
+                               numbers per group, CSV per group in --out-dir
+  compare OLD NEW              two lists from different dates: who arrived and who left
+                               (--out-gained/--out-lost FILE to save as CSV)
+  mutual FOLLOWERS FOLLOWING   mutual follows, not following back, fans
+  profile FILE                 approximate audience composition from names and usernames
+  sample FILE                  random sample of profiles for manual review
 
-Общие опции (ставятся ПЕРЕД командой):
-  --name-col NAME   колонка с именем профиля
-  --url-col NAME    колонка со ссылкой (или ником)
-  --status-col NAME колонка со статусом
-  --json            вывод в JSON
-Опции changes: --out-dir DIR --map "значение=new|unfollowed|stayed" (можно несколько) --show 30
-Опции sample: --n 40 --seed 1 --out sample.md
-Опции profile: --examples 5
+Global options (go BEFORE the command):
+  --name-col NAME   profile name column
+  --url-col NAME    link (or username) column
+  --status-col NAME status column
+  --json            JSON output
+changes options: --out-dir DIR --map "value=new|unfollowed|stayed" (repeatable) --show 30
+sample options: --n 40 --seed 1 --out sample.md
+profile options: --examples 5
 """
 import argparse, csv, io, json, random, re, sys
 from collections import Counter, defaultdict
@@ -32,30 +32,31 @@ URL_HINTS = ["url", "link", "href", "profile", "ссылка", "профиль",
 HANDLE_RE = re.compile(r"^@?[A-Za-z0-9._]{1,30}$")
 NAME_HINTS = ["full name", "fullname", "full_name", "name", "имя", "display"]
 
-# Ключевые слова в имени профиля -> сфера. Грубая эвристика: только как ориентир.
+# Keywords in a profile name -> field. Rough heuristic, indicative only.
+# Keywords cover English and Russian, since profile names come in both.
 SPHERES = {
-    "Красота": ["nail", "ногт", "маникюр", "manicure", "brow", "бров", "lash", "ресниц", "визаж", "makeup", "make up",
+    "Beauty": ["nail", "ногт", "маникюр", "manicure", "brow", "бров", "lash", "ресниц", "визаж", "makeup", "make up",
                 "beauty", "бьюти", "косметолог", "cosmetolog", "hair", "волос", "парикмах", "barber", "барбер", "salon", "салон", "spa", "спа", "эпиляц", "депиляц"],
-    "Здоровье и психология": ["психолог", "psycholog", "психотерап", "therap", "нутрициолог", "nutrition", "врач", "doctor", "dr.",
+    "Health and psychology": ["психолог", "psycholog", "психотерап", "therap", "нутрициолог", "nutrition", "врач", "doctor", "dr.",
                               "стоматолог", "dent", "клиник", "clinic", "массаж", "massage", "остеопат", "health", "здоров"],
-    "Спорт и фитнес": ["fitness", "фитнес", "trainer", "тренер", "coach fit", "yoga", "йога", "pilates", "пилатес", "sport", "спорт", "gym"],
-    "Еда и рестораны": ["cafe", "кафе", "кофе", "coffee", "restaurant", "ресторан", "food", "еда", "кондитер", "торт", "cake",
+    "Sports and fitness": ["fitness", "фитнес", "trainer", "тренер", "coach fit", "yoga", "йога", "pilates", "пилатес", "sport", "спорт", "gym"],
+    "Food and restaurants": ["cafe", "кафе", "кофе", "coffee", "restaurant", "ресторан", "food", "еда", "кондитер", "торт", "cake",
                         "bakery", "пекарн", "chef", "шеф", "pizza", "пицц", "sushi", "суши", "доставка еды", "кулинар"],
-    "Образование": ["school", "школ", "курс", "course", "academy", "академ", "обучени", "учител", "teacher", "репетитор", "tutor", "english", "английск", "university", "университет"],
-    "Маркетинг и SMM": ["smm", "маркет", "market", "таргет", "target", "агентств", "agency", "продвижен", "promo", "контент", "content", "копирайт", "copywrit", "seo"],
-    "Фото, видео, дизайн": ["photo", "фото", "video", "видео", "reels", "дизайн", "design", "illustr", "иллюстр", "художник", "artist", "creative", "креатив"],
-    "Мода и магазины": ["одежд", "wear", "fashion", "мода", "стилист", "stylist", "boutique", "бутик", "showroom", "шоурум", "jewel", "украшен", "handmade", "хендмейд"],
-    "Недвижимость, ремонт, строительство": ["недвиж", "realty", "estate", "риелтор", "realtor", "ремонт", "repair", "строит", "build", "интерьер", "interior", "мебел", "furniture"],
-    "Путешествия": ["travel", "путешеств", "tour", "отель", "hotel", "hostel"],
-    "Бизнес и финансы": ["бизнес", "business", "предприним", "entrepreneur", "финанс", "finance", "инвест", "invest", "юрист", "lawyer", "адвокат", "бухгалт", "account", "консалт", "consult", "ceo", "founder", "основател", "эксперт", "expert"],
-    "Блогеры и медиа": ["blog", "блог", "influenc", "media", "медиа", "podcast", "подкаст", "news", "новост", "журнал", "magazine"],
+    "Education": ["school", "школ", "курс", "course", "academy", "академ", "обучени", "учител", "teacher", "репетитор", "tutor", "english", "английск", "university", "университет"],
+    "Marketing and SMM": ["smm", "маркет", "market", "таргет", "target", "агентств", "agency", "продвижен", "promo", "контент", "content", "копирайт", "copywrit", "seo"],
+    "Photo, video, design": ["photo", "фото", "video", "видео", "reels", "дизайн", "design", "illustr", "иллюстр", "художник", "artist", "creative", "креатив"],
+    "Fashion and shops": ["одежд", "wear", "fashion", "мода", "стилист", "stylist", "boutique", "бутик", "showroom", "шоурум", "jewel", "украшен", "handmade", "хендмейд"],
+    "Real estate, renovation, construction": ["недвиж", "realty", "estate", "риелтор", "realtor", "ремонт", "repair", "строит", "build", "интерьер", "interior", "мебел", "furniture"],
+    "Travel": ["travel", "путешеств", "tour", "отель", "hotel", "hostel"],
+    "Business and finance": ["бизнес", "business", "предприним", "entrepreneur", "финанс", "finance", "инвест", "invest", "юрист", "lawyer", "адвокат", "бухгалт", "account", "консалт", "consult", "ceo", "founder", "основател", "эксперт", "expert"],
+    "Bloggers and media": ["blog", "блог", "influenc", "media", "медиа", "podcast", "подкаст", "news", "новост", "журнал", "magazine"],
 }
 BIZ_MARKERS = ["official", "официальн", "shop", "store", "studio", "студия", "салон", "магазин", "доставка", "заказ", "order", "ltd", "llc", "ооо", "ип "]
 SEPARATORS = re.compile(r"[|•·/✨🔥💅📍—–]|\s-\s")
 VOWELS = set("aeiouyаеёиоуыэюя")
 
 STATUS_HINTS = ["status", "статус", "state", "состояние", "change", "изменени", "event", "событ"]
-# Значения статуса из Follower Tracker и типичные варианты из других сервисов.
+# Status values from Follower Tracker and common variants from other services (English and Russian).
 STATUS_VALUES = {
     "new": ["recent follow", "recent follower", "new", "new follower", "followed", "follow", "follower gained",
             "gained", "joined", "subscribed", "новый", "новая", "новые", "новый подписчик", "подписался",
@@ -65,7 +66,7 @@ STATUS_VALUES = {
     "stayed": ["stayed", "stay", "kept", "remained", "remain", "existing", "same", "unchanged", "old",
                "остался", "осталась", "остались", "без изменений", "прежний"],
 }
-GROUP_LABELS = {"new": "новые (recent follow)", "unfollowed": "отписались (unfollowed)", "stayed": "остались (stayed)"}
+GROUP_LABELS = {"new": "new (recent follow)", "unfollowed": "unfollowed", "stayed": "stayed"}
 
 
 def read_csv(path):
@@ -92,10 +93,10 @@ def status_lookup(extra=None):
     table = {norm_status(v): g for g, vals in STATUS_VALUES.items() for v in vals}
     for item in extra or []:
         if "=" not in item:
-            sys.exit(f"--map ожидает 'значение=new|unfollowed|stayed', получено: {item}")
+            sys.exit(f"--map expects 'value=new|unfollowed|stayed', got: {item}")
         val, grp = item.rsplit("=", 1)
         if grp.strip() not in STATUS_VALUES:
-            sys.exit(f"Группа должна быть new, unfollowed или stayed, получено: {grp}")
+            sys.exit(f"Group must be new, unfollowed or stayed, got: {grp}")
         table[norm_status(val)] = grp.strip()
     return table
 
@@ -103,7 +104,7 @@ def status_lookup(extra=None):
 def detect_status_col(fields, rows, forced=None):
     if forced:
         if forced not in fields:
-            sys.exit(f"Колонка '{forced}' не найдена. Есть: {fields}")
+            sys.exit(f"Column '{forced}' not found. Available: {fields}")
         return forced
     low = {f.lower().strip(): f for f in fields}
     by_name = next((orig for h in STATUS_HINTS for l, orig in low.items() if h in l), None)
@@ -111,7 +112,7 @@ def detect_status_col(fields, rows, forced=None):
         return by_name
     known = status_lookup()
     sample = rows[:300]
-    for f in fields:  # по содержимому: почти все значения — известные статусы
+    for f in fields:  # by content: nearly all values are known statuses
         vals = [norm_status(r.get(f)) for r in sample if (r.get(f) or "").strip()]
         if vals and sum(v in known for v in vals) / len(vals) >= 0.8:
             return f
@@ -122,9 +123,9 @@ def detect_cols(fields, rows, name_col=None, url_col=None, status_col=None):
     fields = [f for f in fields if f != status_col]
     for forced in (name_col, url_col):
         if forced and forced not in fields:
-            sys.exit(f"Колонка '{forced}' не найдена. Есть: {fields}")
+            sys.exit(f"Column '{forced}' not found. Available: {fields}")
     if not url_col:
-        # по содержимому: колонка, где чаще всего встречается instagram.com
+        # by content: the column where instagram.com appears most
         best, score = None, 0
         for f in fields:
             s = sum(1 for r in rows[:200] if "instagram.com" in (r.get(f) or "").lower())
@@ -133,7 +134,7 @@ def detect_cols(fields, rows, name_col=None, url_col=None, status_col=None):
         if not best:
             low = {f.lower().strip(): f for f in fields}
             best = next((orig for h in URL_HINTS for l, orig in low.items() if h in l), None)
-        if not best:  # по содержимому: колонка, где почти все значения похожи на ники
+        if not best:  # by content: the column where nearly all values look like usernames
             for f in fields:
                 vals = [(r.get(f) or "").strip() for r in rows[:200] if (r.get(f) or "").strip()]
                 if vals and sum(bool(HANDLE_RE.match(v)) for v in vals) / len(vals) >= 0.9 \
@@ -183,7 +184,7 @@ def out(result, as_json):
             for x in v[:200]:
                 print(f"  {x}")
             if len(v) > 200:
-                print(f"  ... и ещё {len(v) - 200}")
+                print(f"  ... and {len(v) - 200} more")
         elif isinstance(v, dict):
             print(f"\n{k}:")
             for kk, vv in v.items():
@@ -199,15 +200,15 @@ def pct(n, total):
 def cmd_inspect(a):
     fields, rows, nc, uc, people = load(a.file, a)
     sc = a._status_col
-    res = {"файл": a.file, "строк": len(rows), "уникальных профилей": len(people),
-           "колонки": ", ".join(fields), "колонка имени": nc, "колонка ссылки": uc,
-           "колонка статуса": sc or "нет (обычный список подписчиков)"}
+    res = {"file": a.file, "rows": len(rows), "unique profiles": len(people),
+           "columns": ", ".join(fields), "name column": nc, "link column": uc,
+           "status column": sc or "none (plain follower list)"}
     if sc:
         known = status_lookup()
         vals = Counter(p["status"] for p in people.values())
-        res["значения статуса"] = {(v or "<пусто>"): f"{c} → {GROUP_LABELS.get(known.get(norm_status(v)), 'НЕ РАСПОЗНАНО')}"
+        res["status values"] = {(v or "<empty>"): f"{c} → {GROUP_LABELS.get(known.get(norm_status(v)), 'NOT RECOGNIZED')}"
                                    for v, c in vals.most_common()}
-    res["пример"] = [json.dumps(p, ensure_ascii=False) for p in list(people.values())[:3]]
+    res["sample rows"] = [json.dumps(p, ensure_ascii=False) for p in list(people.values())[:3]]
     out(res, a.json)
 
 
@@ -222,8 +223,8 @@ def cmd_changes(a):
     import os
     *_, people = load(a.file, a)
     if not a._status_col:
-        sys.exit("В файле не найдена колонка статуса. Укажите её через --status-col, "
-                 "или сравните два списка за разные даты командой compare.")
+        sys.exit("No status column found in the file. Set it with --status-col, "
+                 "or compare two lists from different dates with the compare command.")
     table = status_lookup(a.map)
     groups, unknown = defaultdict(list), Counter()
     for p in people.values():
@@ -231,27 +232,27 @@ def cmd_changes(a):
         if g:
             groups[g].append(p)
         else:
-            unknown[p["status"] or "<пусто>"] += 1
+            unknown[p["status"] or "<empty>"] += 1
     new, lost, stayed = len(groups["new"]), len(groups["unfollowed"]), len(groups["stayed"])
     before, after = stayed + lost, stayed + new
-    res = {"колонка статуса": a._status_col,
-           "было (остались + отписались)": before, "стало (остались + новые)": after,
-           "пришло": new, "ушло": lost, "изменение": new - lost,
-           "прирост, % от прежней базы": pct(new - lost, before), "отток, % от прежней базы": pct(lost, before)}
+    res = {"status column": a._status_col,
+           "before (stayed + unfollowed)": before, "after (stayed + new)": after,
+           "arrived": new, "left": lost, "net change": new - lost,
+           "growth, % of previous base": pct(new - lost, before), "churn, % of previous base": pct(lost, before)}
     if not stayed:
-        res["внимание"] = ("В файле нет строк «остались» — прежнюю базу посчитать нельзя, "
-                           "проценты не показательны. Смотрите абсолютные цифры.")
+        res["warning"] = ("The file has no 'stayed' rows, so the previous base can't be calculated "
+                          "and percentages aren't meaningful. Use the absolute numbers.")
     if unknown:
-        res["НЕРАСПОЗНАННЫЕ значения статуса (уточните у пользователя и передайте --map)"] = dict(unknown.most_common())
+        res["UNRECOGNIZED status values (ask the user, then pass --map)"] = dict(unknown.most_common())
     if a.out_dir:
         os.makedirs(a.out_dir, exist_ok=True)
         for g in ("new", "unfollowed", "stayed"):
             if groups[g]:
                 write_list(os.path.join(a.out_dir, f"{g}.csv"), groups[g])
-        res["сохранено"] = f"{a.out_dir}/new.csv, unfollowed.csv, stayed.csv — запустите profile по каждому"
+        res["saved"] = f"{a.out_dir}/new.csv, unfollowed.csv, stayed.csv; run profile on each"
     for g in ("new", "unfollowed"):
         names = sorted(p["username"] for p in groups[g])
-        res[f"{GROUP_LABELS[g]}, первые {a.show}"] = names[:a.show]
+        res[f"{GROUP_LABELS[g]}, first {a.show}"] = names[:a.show]
     out(res, a.json)
 
 
@@ -264,43 +265,43 @@ def cmd_compare(a):
         if path:
             write_list(path, [src[k] for k in keys])
     base = len(o) or 1
-    out({"было": len(o), "стало": len(n), "изменение": len(n) - len(o),
-         "прирост, %": round((len(n) - len(o)) / base * 100, 2),
-         "пришло": len(gained), "ушло": len(lost), "отток, % от базы": round(len(lost) / base * 100, 2),
-         "новые": sorted(gained), "ушедшие (отписки)": sorted(lost)}, a.json)
+    out({"before": len(o), "after": len(n), "net change": len(n) - len(o),
+         "growth, %": round((len(n) - len(o)) / base * 100, 2),
+         "arrived": len(gained), "left": len(lost), "churn, % of base": round(len(lost) / base * 100, 2),
+         "new followers": sorted(gained), "unfollowers": sorted(lost)}, a.json)
 
 
 def cmd_mutual(a):
     *_, fol = load(a.followers, a)
     *_, fng = load(a.following, a)
     f, g = set(fol), set(fng)
-    out({"подписчиков": len(f), "подписок": len(g), "взаимные": sorted(f & g),
-         "не подписаны в ответ": sorted(g - f), "фанаты (вы не подписаны)": sorted(f - g)}, a.json)
+    out({"followers": len(f), "following": len(g), "mutual": sorted(f & g),
+         "not following back": sorted(g - f), "fans (you don't follow them)": sorted(f - g)}, a.json)
 
 
 def script_of(name):
     cyr = len(re.findall(r"[а-яёА-ЯЁ]", name)); lat = len(re.findall(r"[a-zA-Z]", name))
     other = len(re.findall(r"[^\W\d_a-zA-Zа-яёА-ЯЁ]", name))
     if not (cyr or lat or other):
-        return "без букв / пусто"
-    top = max((cyr, "кириллица"), (lat, "латиница"), (other, "другие алфавиты"))
+        return "no letters / empty"
+    top = max((cyr, "Cyrillic"), (lat, "Latin"), (other, "other scripts"))
     return top[1]
 
 
 def suspicious(username, name):
-    """Слабые признаки бота/технического аккаунта. Только пометка «проверить»."""
+    """Weak signs of a bot or throwaway account. Only a "check this" flag."""
     reasons = []
     u = re.sub(r"[._]", "", username)
     digits = sum(c.isdigit() for c in u)
     if digits >= 6 or (digits >= 4 and digits / max(len(u), 1) > 0.5):
-        reasons.append("много цифр в нике")
+        reasons.append("many digits in username")
     for part in re.split(r"[._\d]+", username.lower()):
         lt = [c for c in part if c.isalpha()]
         run = max((len(m) for m in re.findall(r"[^aeiouyаеёиоуыэюя\W\d_]+", part)), default=0)
         if len(lt) >= 7 and sum(c in VOWELS for c in lt) / len(lt) < 0.2 and run >= 5:
-            reasons.append("случайный набор букв"); break
+            reasons.append("random-looking letters"); break
     if not name.strip() and digits >= 3:
-        reasons.append("пустое имя + цифры в нике")
+        reasons.append("empty name + digits in username")
     return reasons
 
 
@@ -309,7 +310,7 @@ _SPHERE_RE = {s: re.compile(r"(?<![^\W_])(?:" + "|".join(re.escape(k) for k in k
 
 
 def classify(text):
-    # ключевое слово должно начинаться с начала слова: «арт» не найдётся внутри «квартир»
+    # a keyword must start at a word boundary, so a short keyword isn't matched inside a longer word
     return [s for s, rx in _SPHERE_RE.items() if rx.search(text)]
 
 
@@ -326,14 +327,14 @@ def cmd_profile(a):
         has_desc = bool(SEPARATORS.search(name)) or len(name.split()) >= 4
         biz = any(m in (" " + name.lower() + " " + user) for m in BIZ_MARKERS)
         if not name.strip():
-            kinds["пустое имя"] += 1
+            kinds["empty name"] += 1
         elif spheres or biz:
-            kinds["похоже на бизнес/специалиста (сфера в имени)"] += 1
+            kinds["looks like a business/specialist (field in name)"] += 1
         elif has_desc:
-            kinds["в имени есть описание, сфера не распознана"] += 1
+            kinds["name has a description, field not recognized"] += 1
             unclassified_desc.append(f"{user} — {name}")
         else:
-            kinds["только имя (вероятно, личный профиль)"] += 1
+            kinds["name only (probably a personal profile)"] += 1
         for s in spheres:
             sphere_count[s] += 1
             if len(sphere_ex[s]) < a.examples and (name or user) not in sphere_ex[s]:
@@ -342,15 +343,15 @@ def cmd_profile(a):
         if r:
             susp.append(f"{user} ({', '.join(r)})")
     out({
-        "профилей": total,
-        "тип профиля по имени, % ": {k: f"{v} ({pct(v, total)}%)" for k, v in kinds.most_common()},
-        "сферы по ключевым словам (профиль может попасть в несколько)": {
-            s: f"{c} ({pct(c, total)}%) — напр.: {'; '.join(sphere_ex[s])}" for s, c in sphere_count.most_common()},
-        "алфавит имени": {k: f"{v} ({pct(v, total)}%)" for k, v in scripts.most_common()},
-        "подозрительные — проверить вручную": f"{len(susp)} ({pct(len(susp), total)}%)",
-        "примеры подозрительных": susp[:30],
-        "описание есть, но сфера не распознана (классифицируй сам)": unclassified_desc[:300],
-        "примечание": "Эвристика по именам и никам: ориентир, а не точный портрет. Большинство людей указывают в имени только имя.",
+        "profiles": total,
+        "profile type by name": {k: f"{v} ({pct(v, total)}%)" for k, v in kinds.most_common()},
+        "fields by keyword (a profile can be in several)": {
+            s: f"{c} ({pct(c, total)}%) — e.g.: {'; '.join(sphere_ex[s])}" for s, c in sphere_count.most_common()},
+        "name alphabet": {k: f"{v} ({pct(v, total)}%)" for k, v in scripts.most_common()},
+        "suspicious — check by hand": f"{len(susp)} ({pct(len(susp), total)}%)",
+        "suspicious examples": susp[:30],
+        "described but field not recognized (classify these yourself)": unclassified_desc[:300],
+        "note": "Heuristic based on names and usernames: indicative, not a precise portrait. Most people put only their name in the profile name.",
     }, a.json)
 
 
@@ -359,9 +360,9 @@ def cmd_sample(a):
     items = list(people.values())
     rnd = random.Random(a.seed)
     chosen = rnd.sample(items, min(a.n, len(items)))
-    lines = [f"# Выборка для ручного разбора: {len(chosen)} из {len(items)} профилей", "",
-             "Откройте каждый профиль и заполните колонки. Тип: личный / специалист / бизнес / блогер / бот?.",
-             "", "| № | Профиль | Тип | Сфера | Город | Заметки |", "|---|---|---|---|---|---|"]
+    lines = [f"# Sample for manual review: {len(chosen)} of {len(items)} profiles", "",
+             "Open each profile and fill in the columns. Type: personal / specialist / business / creator / bot?",
+             "", "| # | Profile | Type | Field | City | Notes |", "|---|---|---|---|---|---|"]
     for i, p in enumerate(chosen, 1):
         link = p["url"] if p["url"].startswith("http") else f"https://www.instagram.com/{p['username']}/"
         label = (p["name"] or p["username"]).replace("|", "/")
@@ -369,7 +370,7 @@ def cmd_sample(a):
     text = "\n".join(lines) + "\n"
     if a.out:
         open(a.out, "w", encoding="utf-8").write(text)
-        print(f"Сохранено: {a.out}")
+        print(f"Saved: {a.out}")
     else:
         print(text)
 
@@ -395,5 +396,5 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except BrokenPipeError:  # вывод обрезан (например, через head) — это не ошибка
+    except BrokenPipeError:  # output was cut short (e.g. piped to head); not an error
         sys.stderr.close()

@@ -1,97 +1,97 @@
 ---
 name: audience-analysis
-description: Анализ подписчиков Instagram-аккаунта по CSV-таблицам — кто подписан сейчас (состав, сферы, язык, подозрительные аккаунты) и как меняется аудитория (новые и отписавшиеся, прирост и отток), в сопоставлении с целями аккаунта; поиск расхождений и аномалий. Работает с выгрузками из расширения Follower Tracker и из других сервисов. Используй этот скилл, когда пользователь спрашивает, кто его подписчики, хочет понять состав, качество или динамику аудитории, найти ботов, узнать, кто подписался или отписался, присылает CSV со списком аккаунтов или со статусами подписчиков, или когда после шага account-brief нужно разобрать аудиторию.
+description: Instagram follower analysis from CSV files — who follows the account now (profile types, fields, language, suspicious accounts) and how the audience is changing (new followers and unfollowers, growth and churn), compared with the account's goals; finds mismatches and anomalies. Works with exports from the Follower Tracker extension and from other services. Use this skill when the user asks who their followers are, wants to understand audience composition, quality or dynamics, find bots, see who followed or unfollowed, shares a CSV of accounts or of follower statuses, or when the audience needs analyzing after the account-brief step.
 ---
 
-# Анализ подписчиков
+# Follower analysis
 
-Отвечай на языке пользователя. Говори об **аккаунте**, а не о «клиенте». Тон деловой.
+Answer in the user's language. Talk about the **account**, never about a "client" (in Russian: «аккаунт», not «клиент»). Keep a business-like tone.
 
-## Суть анализа
+## What this analysis is for
 
-Главная ценность — **сопоставить цели аккаунта с реальной аудиторией**: кто подписан сейчас, кто приходит и кто уходит, и движется ли аудитория туда, куда нужно. Это один анализ, а не два отдельных отчёта: текущий состав показывает, где аккаунт сейчас, а новые и отписавшиеся — куда он движется. Итог — расхождения, аномалии и рекомендации.
+The core value is **comparing the account's goals with its real audience**: who follows it now, who is arriving and who is leaving, and whether the audience is moving where it should. This is one analysis, not two separate reports: the current composition shows where the account is, and new followers and unfollowers show where it's heading. The outcome is mismatches, anomalies and recommendations.
 
-Перед анализом прочитай цели и целевую аудиторию из карточки аккаунта (`accounts/<имя-аккаунта>/card.md` или файлы проекта). Если карточки нет, коротко спроси, о чём аккаунт, чего хотят добиться и кого хотят видеть в подписчиках, или предложи начать с шага account-brief: без целей анализ превращается в статистику без выводов.
+Before the analysis, read the goals and target audience from the account card (`accounts/<account-name>/card.md` or the project files). If there is no card, briefly ask what the account is about, what it wants to achieve and who it wants among its followers, or suggest starting with the account-brief step: without goals the analysis becomes statistics with no conclusions.
 
-## Данные
+## Data
 
-Попроси:
-- **таблицу текущих подписчиков** в CSV;
-- **таблицу новых и отписавшихся** или более ранний список подписчиков — для анализа движения аудитории.
+Ask for:
+- **the current follower list** as CSV;
+- **a table of new followers and unfollowers**, or an earlier follower list — to see how the audience is changing.
 
-Сразу скажи, что если таблиц пока нет — ничего страшного, ты расскажешь, как их получить.
+Add right away that if they don't have these tables yet, that's fine — you'll explain how to get them.
 
-Если пользователь спрашивает, почему нельзя просто посмотреть в Instagram, или если данных о новых и отписавшихся нет, объясни: Instagram не показывает, кто именно подписался и кто отписался за период, — только текущий список и общие цифры. Узнать это можно одним способом — сравнить списки подписчиков, сохранённые в разные даты. На этом принципе работает расширение Follower Tracker: оно сохраняет список подписчиков, а если есть ранее сохранённые списки — отдаёт таблицу, где у каждого подписчика статус `recent follow` (новый), `unfollowed` (отписался) или `stayed` (остался).
+If the user asks why they can't just look it up in Instagram, or if there's no data on new followers and unfollowers, explain: Instagram doesn't show who exactly followed or unfollowed over a period — only the current list and overall numbers. The only way to find out is to compare follower lists saved on different dates. That's how the Follower Tracker extension works: it saves the follower list and, if earlier lists exist, produces a table where each follower has the status `recent follow` (new), `unfollowed` or `stayed`.
 
-Когда нужно направить к расширению, давай ссылку ровно в таком виде, со всеми параметрами, не сокращая её:
+When pointing the user to the extension, give the link exactly like this, with all its parameters, without shortening it:
 https://chromewebstore.google.com/detail/follower-tracker/onejjehablkibkmocglgkbjfphlnilan?utm_source=claude&utm_medium=plugin&utm_campaign=audience
 
-Коротко, как получить таблицу: установить расширение, открыть Instagram под нужным аккаунтом, запустить сканирование и сохранить CSV. Если пользователь уже прислал данные, ссылку не повторяй, только если она нужна для следующего шага.
+Briefly, how to get the table: install the extension, open Instagram under the account in question, run a scan and save the CSV. If the user has already sent the data, don't repeat the link unless it's needed for the next step.
 
-**Если есть только текущий список** (первая выгрузка): проведи анализ текущей аудитории, а про динамику скажи, что сравнивать пока не с чем, и предложи сделать следующую выгрузку через 1–2 недели и вернуться — тогда будет видно, куда движется аудитория.
+**If there's only the current list** (a first export): analyze the current audience, and for dynamics say there's nothing to compare with yet; suggest making the next export in 1–2 weeks and coming back — then it will be clear where the audience is heading.
 
-## Файлы бывают разными
+## Files vary
 
-Пользователь может прислать выгрузку из Follower Tracker или из любого другого сервиса. Не требуй определённого формата: скрипт сам определяет разделитель, кодировку и колонки (имя, ссылка или ник, статус). Всегда начинай с команды `inspect` и проверяй, что колонки распознаны верно; если нет — укажи их явно (`--name-col`, `--url-col`, `--status-col`). Если в файле нет ни имён, ни ссылок, ни ников, скажи, каких данных не хватает.
+The user may send an export from Follower Tracker or from any other service. Don't demand a particular format: the script detects the delimiter, encoding and columns (name, link or username, status) by itself. Always start with the `inspect` command and check that the columns were recognized correctly; if not, set them explicitly (`--name-col`, `--url-col`, `--status-col`). If the file has no names, links or usernames, say what data is missing.
 
-Не предлагай Follower Tracker только потому, что файл из другого сервиса. Предлагай, когда данных не хватает для задачи.
+Don't suggest Follower Tracker just because the file comes from another service. Suggest it when there isn't enough data for the task.
 
-## Как анализировать
+## How to analyze
 
-Скрипт `scripts/audience.py` — только стандартная библиотека Python, работает локально и ничего не отправляет в сеть. Путь — относительно папки этого скилла. Общие опции (`--name-col`, `--url-col`, `--status-col`, `--json`) ставятся **перед** командой.
+The `scripts/audience.py` script uses only the Python standard library, runs locally and sends nothing to the network. The path is relative to this skill's folder. Global options (`--name-col`, `--url-col`, `--status-col`, `--json`) go **before** the command.
 
-**Текущая аудитория:** `python scripts/audience.py profile FILE.csv` — типы профилей (личные, специалисты, бизнес), сферы по ключевым словам, алфавит имён (подсказка о языке аудитории), подозрительные аккаунты. В выводе есть список «описание есть, но сфера не распознана» — прочитай эти имена и распредели их по сферам сам, затем поправь итоговые цифры.
+**Current audience:** `python scripts/audience.py profile FILE.csv` — profile types (personal, specialists, businesses), fields by keyword, name alphabets (a hint about the audience's language), suspicious accounts. The output includes a list "described but field not recognized" — read those names, assign them to fields yourself, then adjust the totals.
 
-**Движение аудитории:**
-- таблица со статусами: `python scripts/audience.py changes FILE.csv --out-dir changes` — новые, отписавшиеся, прирост и отток в процентах, группы в отдельных файлах. Если скрипт сообщает о **нераспознанных значениях статуса**, покажи их пользователю, спроси, что они значат, и запусти снова с `--map "значение=new"` (или `unfollowed`, `stayed`). Не угадывай.
-- два списка за разные даты: `python scripts/audience.py compare OLD.csv NEW.csv --out-gained gained.csv --out-lost lost.csv`.
+**How the audience is changing:**
+- status table: `python scripts/audience.py changes FILE.csv --out-dir changes` — new followers, unfollowers, growth and churn in percent, with each group saved to its own file. If the script reports **unrecognized status values**, show them to the user, ask what they mean and rerun with `--map "value=new"` (or `unfollowed`, `stayed`). Don't guess.
+- two lists from different dates: `python scripts/audience.py compare OLD.csv NEW.csv --out-gained gained.csv --out-lost lost.csv`.
 
-Затем запусти `profile` по файлам новых и отписавшихся: важно не только сколько пришло и ушло, а **кто**.
+Then run `profile` on the new-follower and unfollower files: what matters is not only how many arrived and left, but **who**.
 
-Если выгрузки лежат в папке аккаунта (`accounts/<имя-аккаунта>/snapshots/`), сам выбери нужные файлы за период.
+If exports are kept in the account folder (`accounts/<account-name>/snapshots/`), pick the right files for the period yourself.
 
-**Портрет по выборке** — если нужно понять аудиторию глубже, чем позволяют имена: `python scripts/audience.py sample FILE.csv --n 40 --out sample.md`. Пользователь сам открывает 30–50 случайных профилей и отмечает тип, сферу и город (20–30 минут), а ты сводишь заметки в портрет. Доли по выборке называй примерными.
+**Portrait from a sample** — when the audience needs to be understood more deeply than names allow: `python scripts/audience.py sample FILE.csv --n 40 --out sample.md`. The user opens 30–50 random profiles themselves and notes type, field and city (20–30 minutes), and you turn the notes into a portrait. Call shares based on a sample approximate. The sample file has English column headers; if the user writes in another language, translate the headers before giving it to them.
 
-Ещё есть `mutual FOLLOWERS FOLLOWING` — взаимные подписки. Если выполнение кода недоступно, разбери CSV вручную по тем же правилам; для больших файлов честно скажи, что анализ приблизительный.
+There's also `mutual FOLLOWERS FOLLOWING` for mutual follows. If code execution isn't available, analyze the CSV by hand using the same rules; for large files, say honestly that the analysis is approximate.
 
-## Что искать: расхождения и аномалии
+## What to look for: mismatches and anomalies
 
-Сопоставь всё с целями и целевой аудиторией аккаунта:
-- **Расхождение состава:** фактическая аудитория не совпадает с целевой (например, аккаунт для клиентов-предпринимателей, а подписаны в основном коллеги по нише).
-- **Приходят не те:** новые подписчики не похожи на целевую аудиторию — аккаунт растёт, но не туда.
-- **Уходят нужные:** среди отписавшихся непропорционально много целевой аудитории.
-- **Всплеск подозрительных:** заметная доля новых подписчиков с признаками ботов или накрутки.
-- **Резкий отток или приток:** заметно выше обычного для аккаунта или связан с периодом, публикацией, коллаборацией, рекламой, о которых рассказал пользователь.
-- **Перекос по одной группе:** приток почти целиком из одной сферы или языка.
+Compare everything with the account's goals and target audience:
+- **Composition mismatch:** the actual audience doesn't match the target one (for example, the account is for entrepreneur clients, but followers are mostly peers from the same niche).
+- **The wrong people arriving:** new followers don't look like the target audience — the account is growing, but in the wrong direction.
+- **Key followers leaving:** unfollowers include a disproportionate share of the target audience.
+- **A spike in suspicious accounts:** a noticeable share of new followers show signs of bots or fake followers.
+- **Sharp churn or growth:** noticeably above what's usual for the account, or tied to a period, post, collaboration or ad the user mentioned.
+- **Skew toward one group:** new followers come almost entirely from one field or language.
 
-Связь с конкретными событиями формулируй как гипотезу, а не как факт, и спроси пользователя, что происходило в аккаунте в этот период.
+Present links to specific events as hypotheses, not facts, and ask the user what was happening on the account during that period.
 
-## Что можно и чего нельзя узнать
+## What can and can't be known
 
-- **Надёжно:** число подписчиков, кто пришёл и кто ушёл (по сравнению списков), взаимные подписки.
-- **Как ориентир:** состав аудитории по именам. Многие пишут сферу в имени профиля, но большинство — только имя, поэтому доли — оценка снизу.
-- **Как сигнал «проверить»:** подозрительные аккаунты. Это не доказательство, что аккаунт — бот.
-- **Нельзя:** описание профиля, число подписчиков каждого аккаунта, род занятий тех, кто не указал его в имени.
+- **Reliable:** follower count, who arrived and who left (by comparing lists), mutual follows.
+- **Indicative:** audience composition from names. Many people put their field in their profile name, but most write only a name, so shares are a lower-bound estimate.
+- **A "check this" signal:** suspicious accounts. This isn't proof that an account is a bot.
+- **Not possible:** profile bios, each account's follower count, or the occupation of people who didn't put it in their name.
 
-## Как подавать результат
+## How to present the result
 
-1. **Главный вывод** одной-двумя фразами: движется ли аудитория к цели.
-2. **Кто подписан сейчас:** состав, сферы, язык, доля подозрительных, совпадение с целевой аудиторией.
-3. **Как меняется аудитория:** прирост и отток, кто приходит, кто уходит.
-4. **Расхождения и аномалии.**
-5. **Рекомендации:** что делать — переориентироваться на другую аудиторию, расширять текущую или работать над вовлечённостью тех, кто уже есть; плюс конкретные шаги по найденным аномалиям. Рекомендации — это направление, а не стратегия: коротко, 3–5 пунктов.
-6. Ограничения данных — одной строкой.
-7. **Предложение следующего шага — обязательно, последним абзацем ответа.** Анализ не считается законченным без него, даже если рекомендации уже даны. Предложи по смыслу так:
-   > На основе этого анализа могу составить стратегию: пройдём её по шагам, начиная с выбора направления по аудитории, и на каждом шаге вы сможете внести правки. Также могу собрать отчёт по аккаунту — текстом или в PDF. С чего начнём?
+1. **Main conclusion** in one or two sentences: is the audience moving toward the goal.
+2. **Who follows now:** composition, fields, language, share of suspicious accounts, match with the target audience.
+3. **How the audience is changing:** growth and churn, who's arriving, who's leaving.
+4. **Mismatches and anomalies.**
+5. **Recommendations:** what to do — shift to a different audience, grow the current one, or work on the engagement of existing followers; plus concrete steps for the anomalies found. Recommendations are a direction, not a strategy: keep them short, 3–5 points.
+6. Data limitations — one line.
+7. **Next-step offer — required, as the last paragraph of the response.** The analysis isn't finished without it, even if recommendations have already been given. Offer, in substance:
+   > Based on this analysis, I can put together a strategy: we'll go through it step by step, starting with choosing a direction for the audience, and you can make edits at every step. I can also prepare a report on the account — as text or PDF. Where shall we start?
 
-   Не начинай стратегию или отчёт без согласия пользователя.
+   Don't start the strategy or the report without the user's agreement.
 
-Показывай сводки и доли. Списки имён длиннее ~30 не выводи целиком — предложи сохранить в файл. Не делай выводов о конкретных людях.
+Show summaries and shares. Don't list more than ~30 names in full — offer to save them to a file. Don't draw conclusions about specific people.
 
-Если анализ идёт в несколько сообщений (например, сначала текущая аудитория, потом динамика), предложение следующего шага делай в конце итогового сообщения, а промежуточные заканчивай тем, что нужно для продолжения анализа.
+If the analysis spans several messages (for example, current audience first, then dynamics), make the next-step offer at the end of the final message, and end the intermediate ones with whatever is needed to continue the analysis.
 
-## Границы
+## Boundaries
 
-- Работай только с присланными данными. Не открывай профили Instagram сам — ни через загрузку страниц, ни через управление браузером: Instagram запрещает автоматический сбор данных и блокирует за него аккаунты, а массовый сбор данных о людях без их ведома нарушает законы о персональных данных (например, GDPR). Ручной просмотр выборки делает сам пользователь.
-- Анализируй аудиторию в целом. Не составляй досье на конкретных подписчиков.
-- Не советуй массовые автоматические подписки или отписки, в том числе для «чистки» ботов: Instagram за это ограничивает аккаунты. Удалять подозрительных подписчиков — вручную и постепенно.
+- Work only with the data the user provides. Don't open Instagram profiles yourself — neither by fetching pages nor by controlling a browser: Instagram prohibits automated data collection and blocks accounts for it, and mass collection of people's data without their knowledge breaks personal data laws (for example, GDPR). Reviewing a sample by hand is done by the user.
+- Analyze the audience as a whole. Don't build profiles of individual followers.
+- Don't advise mass automated follows or unfollows, including for "cleaning out" bots: Instagram restricts accounts for this. Remove suspicious followers by hand and gradually.

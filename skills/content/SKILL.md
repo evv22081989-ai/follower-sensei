@@ -1,58 +1,58 @@
 ---
 name: content
-description: Контент для Instagram-аккаунта по утверждённой стратегии — контент-план, идеи и сценарии Reels, карусели, подписи, сторис, хэштеги в тоне аккаунта, с учётом ценностей, отстройки и выбранного направления по аудитории. Используй этот скилл, когда пользователь соглашается на контент после утверждения стратегии, просит контент-план на неделю или месяц, тексты для постов, сценарии Reels, идеи для сторис или хочет переписать текст в тоне аккаунта.
+description: Content for an Instagram account based on a confirmed strategy — content plan, Reels ideas and scripts, carousels, captions, Stories, hashtags in the account's tone of voice, reflecting its values, differentiation and chosen audience direction. Use this skill when the user agrees to content after the strategy is confirmed, asks for a weekly or monthly content plan, post captions, Reels scripts, Stories ideas, or wants a text rewritten in the account's tone of voice.
 ---
 
-# Контент
+# Content
 
-Отвечай на языке пользователя. Говори об **аккаунте**, а не о «клиенте».
+Answer in the user's language. Talk about the **account**, never about a "client" (in Russian: «аккаунт», not «клиент»).
 
-## Контент вытекает из стратегии
+## Content follows the strategy
 
-Контент строится по **утверждённой стратегии** (скилл strategy): её направлению по аудитории, рубрикам, форматам и частоте. Если стратегии нет:
-- предложи сначала собрать её — так контент будет работать на цель, а не просто заполнять ленту;
-- если пользователю нужен конкретный текст прямо сейчас (одна подпись, один сценарий), сделай его, опираясь на карточку аккаунта, и не настаивай на стратегии.
+Content is built on the **confirmed strategy** (the strategy skill): its audience direction, pillars, formats and frequency. If there's no strategy:
+- suggest building one first — that way content serves the goal instead of just filling the feed;
+- if the user needs a specific piece right now (one caption, one script), write it based on the account card and don't push the strategy.
 
-Если есть стратегия или карточка аккаунта (`accounts/<имя-аккаунта>/strategy.md`, `card.md` или файлы проекта), прочитай их.
+If there's a strategy or an account card (`accounts/<account-name>/strategy.md`, `card.md` or the project files), read them.
 
-## Сначала предложение, потом составление
+## Propose first, then write
 
-Прежде чем писать план целиком, коротко предложи, что сделаешь: период, сколько публикаций, какие рубрики и форматы. **Составляй только после подтверждения пользователя.** Для большого плана покажи первую неделю, получи правки и только потом продолжай.
+Before writing a whole plan, briefly propose what you'll do: the period, number of posts, pillars and formats. **Write only after the user confirms.** For a large plan, show the first week, get edits, and only then continue.
 
-## Обязательно учитывай
+## Always take into account
 
-- **Тон** (tone of voice) — каждый текст звучит как этот аккаунт.
-- **Ценности** — контент им не противоречит, а показывает.
-- **Отстройку** — в контенте видно, чем аккаунт отличается от похожих.
-- **Направление по аудитории** из стратегии:
-  - *переориентация* — темы и хуки для новой аудитории, без резкой потери нужной части текущей;
-  - *расширение* — форматы с охватом за пределы текущих подписчиков (Reels, коллаборации, полезные карусели для сохранения и пересылки);
-  - *вовлечённость* — вопросы, опросы, интерактив в сторис, личный контент, поводы для комментариев.
+- **Tone of voice** — every text sounds like this account.
+- **Values** — content doesn't contradict them; it shows them.
+- **Differentiation** — the content makes it visible how this account differs from similar ones.
+- **The audience direction** from the strategy:
+  - *shift* — topics and hooks for the new audience, without abruptly losing the valuable part of the current one;
+  - *growth* — formats that reach beyond current followers (Reels, collaborations, useful carousels people save and share);
+  - *engagement* — questions, polls, interactive Stories, personal content, reasons to comment.
 
-## Контент-план
+## Content plan
 
-Таблицей: дата, формат, рубрика, тема, хук (первая фраза или первый кадр), призыв к действию, на что работает (направление/цель). Учитывай реальные ресурсы: не планируй 5 Reels в неделю, если съёмки раз в месяц. Если есть доступ к файлам, предложи сохранить план в `accounts/<имя-аккаунта>/content-plan-<месяц>.md`.
+As a table: date, format, pillar, topic, hook (first line or first frame), call to action, what it serves (direction or goal). Respect the real resources: don't plan 5 Reels a week if filming happens once a month. If you have file access, offer to save the plan to `accounts/<account-name>/content-plan-<month>.md`.
 
-## Тексты
+## Captions
 
-- Первая строка — хук, который виден до «ещё».
-- Короткие абзацы, живой язык, один призыв к действию.
-- По запросу — 2–3 варианта.
+- The first line is a hook that shows before "more".
+- Short paragraphs, natural language, one call to action.
+- 2–3 versions on request.
 
-## Reels и сторис
+## Reels and Stories
 
-Сценарий Reels: хук на первые 1–2 секунды, сцены, текст на экране, подпись, тип звука (не конкретный трек). Сторис: серия из 3–7 кадров с интерактивом.
+Reels script: a hook for the first 1–2 seconds, scenes, on-screen text, caption, type of sound (not a specific track). Stories: a series of 3–7 frames with interactive elements.
 
-## Хэштеги
+## Hashtags
 
-5–15 релевантных: широкие, нишевые, локальные. Не обещай охват от хэштегов.
+5–15 relevant ones: broad, niche, local. Don't promise reach from hashtags.
 
-## Чего не делать
+## Don'ts
 
-- Не выдумывай факты, цены, отзывы и результаты — оставляй пометку [уточнить].
-- Не пиши контент, который противоречит тону, ценностям или запретам аккаунта.
-- Не упоминай расширение Follower Tracker в контенте: это инструмент для анализа, а не тема для публикаций.
+- Don't invent facts, prices, testimonials or results — leave a [to confirm] mark.
+- Don't write content that contradicts the account's tone of voice, values or restrictions.
+- Don't mention the Follower Tracker extension in content: it's an analysis tool, not a topic for posts.
 
-## После контента
+## After the content
 
-Предложи через 2–4 недели публикаций вернуться с новой выгрузкой подписчиков и посмотреть, кто пришёл и кто ушёл (скилл audience-analysis), чтобы проверить, работает ли выбранное направление.
+Suggest coming back after 2–4 weeks of posting with a new follower export to see who arrived and who left (the audience-analysis skill), to check whether the chosen direction is working.

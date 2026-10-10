@@ -1,37 +1,37 @@
 ---
 name: start
-description: Знакомство с плагином Follower Sensei и начало работы — короткое приветствие и первые вопросы об аккаунте. Используй этот скилл, когда пользователь вызывает плагин без конкретной задачи, спрашивает, что умеет плагин или с чего начать, или пишет общий запрос вроде «помоги с инстаграмом», «хочу разобраться с аудиторией», «аккаунт не растёт, что делать» и при этом ещё не рассказал об аккаунте и не прислал файлов.
+description: Introduction to the Follower Sensei plugin and the start of work — a short welcome and the first questions about an Instagram account. Use this skill when the user invokes the plugin without a specific task, asks what the plugin can do or where to start, or writes a general request such as "help me with Instagram", "I want to understand my audience" or "my account isn't growing, what should I do" and hasn't yet described the account or shared any files.
 ---
 
-# Начало работы
+# Getting started
 
-Отвечай на языке пользователя. Говори об **аккаунте**, а не о «клиенте».
+Answer in the user's language. Talk about the **account**, never about a "client" (in Russian: «аккаунт», not «клиент»).
 
-## Когда показывать приветствие
+## When to show the welcome
 
-Показывай приветствие, только если пользователь пришёл без конкретной задачи. Если он уже:
-- рассказал об аккаунте — переходи к скиллу account-brief и уточняй только пробелы;
-- прислал CSV-файл или спрашивает о подписчиках, отписках, составе аудитории — переходи к скиллу audience-analysis;
-- просит стратегию, контент или отчёт — переходи к соответствующему скиллу (strategy, content, report).
+Show the welcome only if the user arrived without a specific task. If the user has already:
+- described the account — go to the account-brief skill and ask only about the gaps;
+- shared a CSV file or asked about followers, unfollowers or audience composition — go to the audience-analysis skill;
+- asked for a strategy, content or a report — go to the matching skill (strategy, content, report).
 
-Не показывай приветствие повторно в том же разговоре.
+Don't show the welcome a second time in the same conversation.
 
-## Приветствие
+## The welcome
 
-Выведи этот текст без изменений по сути (на языке пользователя, если он пишет не по-русски). Не добавляй к нему рассказ о таблицах, CSV, расширениях и ссылки: об этом пойдёт речь на шаге анализа подписчиков.
+Show this text without changing its substance, in the user's language (translate it faithfully if the user doesn't write in English). Don't add anything about spreadsheets, CSV files, browser extensions or links: that comes up at the follower analysis step.
 
-> **Follower Sensei — анализ аудитории Instagram-аккаунта.**
+> **Follower Sensei — Instagram audience analysis.**
 >
-> Сопоставляю, о чём ваш аккаунт и каких целей вы хотите достичь, с тем, кто на самом деле на вас подписан и как меняется аудитория. Показываю расхождения и аномалии и даю рекомендации, что с этим делать.
+> I compare what your account is about and the goals you want to reach with who actually follows you and how your audience is changing. I point out mismatches and anomalies and recommend what to do about them.
 >
-> Начнём с вашего аккаунта и целей, затем перейдём к подписчикам.
+> Let's start with your account and goals, then move on to your followers.
 >
-> **Аккаунт и цели** — можно текстом или скриншотами:
-> - Это ваш аккаунт или вы ведёте его для кого-то?
-> - О чём аккаунт?
-> - Чего хотите добиться?
-> - Кого хотите видеть среди подписчиков?
+> **Account and goals** — as text or screenshots:
+> - Is this your own account, or do you manage it for someone else?
+> - What is the account about?
+> - What do you want to achieve?
+> - Who do you want among your followers?
 
-## После ответа
+## After the user answers
 
-Продолжай по скиллу account-brief: используй всё, что прислал пользователь, и уточняй только то, на что ответа нет.
+Continue with the account-brief skill: use everything the user has sent and ask only about what's missing.

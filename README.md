@@ -1,59 +1,55 @@
 # Follower Sensei
 
-Плагин для Claude — мастер работы с аудиторией Instagram-аккаунта. Для блогеров, продюсеров и SMM-специалистов: помогает понять, кто на самом деле подписан на аккаунт, кто приходит и кто уходит, и на основе этого по шагам выстроить стратегию и контент.
+A Claude plugin for Instagram audience analysis, built for creators, producers and SMM specialists. It compares what an account is about and what it wants to achieve with who actually follows it and how the audience is changing — then points out mismatches and anomalies and gives recommendations.
 
-*Follower Sensei helps creators, producers and SMM specialists understand an Instagram account's audience — who follows it, who recently followed and who unfollowed — from CSV exports, and then builds a strategy, content and reports step by step with the user. Instructions are written in Russian; Claude answers in the user's language.*
+## How it works
 
-## Как устроена работа
+0. **Getting started** (`start`) — a short welcome and four questions about the account, shown when the user arrives without a specific task.
+1. **Account and goals** (`account-brief`) — what the account is about, what it wants to achieve and who it is for; its core message, tone of voice, values and positioning; an account card the other steps build on.
+2. **Follower analysis** (`audience-analysis`) — who follows the account now (profile types, fields, language, suspicious accounts) and how the audience is changing (new followers and unfollowers, growth and churn), compared with the account's goals: is the audience moving where it should, and are there anomalies — for example, the wrong people arriving or key followers leaving.
 
-Главное, что делает плагин, — сопоставляет, о чём аккаунт и каких целей хочет достичь, с тем, кто на самом деле на него подписан и как меняется аудитория. Показывает расхождения и аномалии и даёт рекомендации.
+Then, offered by the plugin and only with the user's agreement:
 
-0. **Знакомство** (`start`) — короткое приветствие и четыре вопроса об аккаунте, если пользователь пришёл без конкретной задачи.
-1. **Аккаунт и цели** (`account-brief`) — о чём аккаунт, чего хотим добиться, для кого он; смысловое ядро, тон, ценности и отстройка; карточка аккаунта.
-2. **Анализ подписчиков** (`audience-analysis`) — кто подписан сейчас (состав, сферы, язык, подозрительные аккаунты) и как меняется аудитория (новые и отписавшиеся, прирост и отток) в сопоставлении с целями: движется ли аудитория туда, куда нужно, и есть ли аномалии — например, приходят не те люди или уходят ключевые подписчики.
+- **Strategy** (`strategy`) — built step by step, each step shown for edits. Takes into account the account's tone of voice, values and positioning, and starts by choosing a direction: shift to a different audience, grow the current one, or increase its engagement.
+- **Content** (`content`) — after the strategy is confirmed: content plan, captions, Reels and Stories scripts.
+- **Report** (`report`) — for a period, as text or a PDF file.
 
-Дальше — по предложению плагина и только с согласия пользователя:
+Skills turn on by themselves when a request fits, or manually: `/follower-sensei:audience-analysis` and so on. The plugin's instructions are in English; Claude answers in the user's language.
 
-- **Стратегия** (`strategy`) — строится по шагам, каждый шаг показывается на правки. Учитывает тон, ценности и отстройку аккаунта и выбор направления: переориентироваться на другую аудиторию, расширять текущую или повышать её вовлечённость.
-- **Контент** (`content`) — после утверждения стратегии: контент-план, тексты, сценарии Reels и сторис.
-- **Отчёт** (`report`) — по аккаунту за период, текстом или PDF-файлом на выбор.
+## What files it uses
 
-Скиллы включаются сами, когда запрос подходит по смыслу, или вручную: `/follower-sensei:audience-analysis` и т.д.
+Instagram doesn't show who exactly followed or unfollowed an account over a period — only the current list and overall numbers. The only way to find out is to compare follower lists saved on different dates. The plugin accepts:
 
-## Какие файлы нужны
+- **a current follower list** — with names, profile links or usernames;
+- **a table with statuses** — where each follower is marked as new, unfollowed or stayed;
+- **or two lists from different dates** — the plugin compares them itself.
 
-Instagram не показывает, кто именно подписался и кто отписался за период, — только текущий список и общие цифры. Узнать это можно, сравнив списки подписчиков, сохранённые в разные даты. Плагин принимает:
+CSV files from any service work: the delimiter, encoding and columns are detected automatically, and the plugin asks the user about status values it doesn't recognize.
 
-- **таблицу текущих подписчиков** — с именами, ссылками на профили или никами;
-- **таблицу со статусами** — где у каждого подписчика отмечено, новый он, отписался или остался;
-- **или два списка за разные даты** — плагин сравнит их сам.
+## Relationship with the Follower Tracker extension
 
-Подойдут CSV из любого сервиса: разделитель, кодировка и колонки определяются автоматически, а незнакомые значения статуса плагин уточнит у пользователя.
+The plugin's author is the developer of the Chrome extension [Follower Tracker](https://chromewebstore.google.com/detail/follower-tracker/onejjehablkibkmocglgkbjfphlnilan?utm_source=claude&utm_medium=plugin&utm_campaign=readme). It saves the follower list as CSV and, when earlier lists exist, a table with the statuses `recent follow`, `unfollowed` and `stayed`.
 
-## Связь с расширением Follower Tracker
+The plugin recommends the extension only when follower data is missing for the task at hand. Using it is optional: the plugin works with files from other services, and strategy and content work without any exports.
 
-Автор плагина — разработчик Chrome-расширения [Follower Tracker](https://chromewebstore.google.com/detail/follower-tracker/onejjehablkibkmocglgkbjfphlnilan?utm_source=claude&utm_medium=plugin&utm_campaign=readme). Оно сохраняет список подписчиков в CSV, а при наличии ранних списков — таблицу со статусами `recent follow`, `unfollowed` и `stayed`.
+Links to the extension in the plugin carry UTM tags (`utm_source=claude`, `utm_medium=plugin`, `utm_campaign` — the place in the plugin; `report-document` — the link inside a finished report). They are a label in the link address used for Chrome Web Store page-view statistics; the plugin doesn't collect or send any data.
 
-Плагин рекомендует расширение, только когда для задачи не хватает данных о подписчиках. Использовать его не обязательно: плагин работает с файлами из других сервисов, а стратегия и контент — и без выгрузок.
+## What the plugin runs and where data goes
 
-Ссылки на расширение в плагине содержат UTM-метки (`utm_source=claude`, `utm_medium=plugin`, `utm_campaign` — место в плагине; `report-document` — ссылка внутри готового отчёта). Это подпись в адресе ссылки для статистики просмотров страницы расширения в Chrome Web Store; плагин не собирает и не передаёт никаких данных.
+- The plugin consists of instructions for Claude (`skills/*/SKILL.md`) and one Python script: `skills/audience-analysis/scripts/audience.py`.
+- The script uses only the Python standard library, runs locally on CSV files the user provides, and **sends nothing to the network and downloads nothing from it**. It computes summaries, compares lists and can save results to files in the working folder.
+- For PDF reports, Claude uses whatever tools are available in the user's environment; the plugin doesn't install packages itself.
+- The plugin has no hooks, MCP servers or external dependencies.
+- The plugin doesn't access Instagram and forbids Claude from collecting data from profiles automatically: that breaks Instagram's rules and personal data laws. The audience is analyzed as a whole, with no profiles of individual people.
 
-## Что плагин запускает и куда отправляет данные
+## Where account data is kept
 
-- Плагин состоит из инструкций для Claude (`skills/*/SKILL.md`) и одного скрипта на Python: `skills/audience-analysis/scripts/audience.py`.
-- Скрипт использует только стандартную библиотеку Python, работает локально с CSV-файлами, которые передал пользователь, и **ничего не отправляет в сеть и не загружает из сети**. Он считает сводки, сравнивает списки и может сохранить результат в файлы в рабочей папке.
-- Для отчёта в PDF Claude использует инструменты, доступные в среде пользователя; плагин не устанавливает пакеты сам.
-- В плагине нет хуков, MCP-серверов и внешних зависимостей.
-- Плагин не заходит в Instagram и запрещает Claude собирать данные с профилей автоматически: это нарушает правила Instagram и законы о персональных данных. Аудитория анализируется в целом, без досье на отдельных людей.
-
-## Где хранятся данные аккаунта
-
-В Claude Code плагин предлагает хранить всё по аккаунту в рабочей папке:
+In Claude Code the plugin suggests keeping everything for an account in the working folder:
 
 ```
 accounts/
-└── имя-аккаунта/
-    ├── card.md               # о чём аккаунт, цели, смысловое ядро, тон, ценности, отстройка
+└── account-name/
+    ├── card.md               # what the account is about, goals, core message, tone, values, positioning
     ├── strategy.md
     ├── content-plan-10.md
     ├── snapshots/
@@ -62,27 +58,27 @@ accounts/
     └── reports/
 ```
 
-На claude.ai удобнее завести отдельный проект под каждый аккаунт. Для анализа аудитории и отчёта в PDF на claude.ai должна быть включена функция выполнения кода; без неё Claude разберёт CSV вручную, менее точно, а отчёт выдаст текстом.
+On claude.ai it's easier to create a separate project per account. Follower analysis and PDF reports on claude.ai need code execution turned on; without it, Claude reads the CSV by hand, less precisely, and gives the report as text.
 
-## Установка
+## Installation
 
-На claude.ai или в Claude Desktop: **Customize → Plugins → Add → Add marketplace** и ссылка на репозиторий: `https://github.com/evv22081989-ai/follower-sensei`
+On claude.ai or in Claude Desktop: **Customize → Plugins → Add → Add marketplace**, then the repository link: `https://github.com/evv22081989-ai/follower-sensei`
 
-В Claude Code:
+In Claude Code:
 
 ```
 /plugin marketplace add evv22081989-ai/follower-sensei
 /plugin install follower-sensei@follower-sensei-marketplace
 ```
 
-## Примеры файлов
+## Example files
 
-В папке `examples/` — тестовые данные с выдуманными аккаунтами:
+The `examples/` folder holds test data with made-up accounts:
 
-- `followers-2026-09-01.csv`, `followers-2026-10-01.csv` — два списка подписчиков за разные даты;
-- `follower-changes-2026-10-01.csv` — таблица со статусами в формате Follower Tracker;
-- `other-service-changes.csv` — таблица из «другого сервиса»: другие названия колонок, ники вместо ссылок, разделитель `;`, кодировка Windows-1251 и одно незнакомое значение статуса.
+- `followers-2026-09-01.csv`, `followers-2026-10-01.csv` — two follower lists from different dates;
+- `follower-changes-2026-10-01.csv` — a status table in the Follower Tracker format;
+- `other-service-changes.csv` — a table from "another service": different column names, usernames instead of links, `;` delimiter, Windows-1251 encoding and one unfamiliar status value.
 
-## Лицензия
+## License
 
-MIT, см. [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).
