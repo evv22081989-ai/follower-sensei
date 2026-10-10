@@ -1,0 +1,16 @@
+{
+  "name": "follower-sensei-marketplace",
+  "owner": {
+    "name": "Elena Vyazovetskova"
+  },
+  "metadata": {
+    "description": "Follower Sensei — Instagram audience analysis for creators, producers and SMM specialists."
+  },
+  "plugins": [
+    {
+      "name": "follower-sensei",
+      "source": "./",
+      "description": "Instagram audience analysis: current followers, new followers and unfollowers compared with the account's goals, plus strategy, content and reports."
+    }
+  ]
+}
