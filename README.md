@@ -79,6 +79,10 @@ The `examples/` folder holds test data with made-up accounts:
 - `follower-changes-2026-10-01.csv` — a status table in the Follower Tracker format;
 - `other-service-changes.csv` — a table from "another service": different column names, usernames instead of links, `;` delimiter, Windows-1251 encoding and one unfamiliar status value.
 
+## Privacy
+
+The plugin sends no data anywhere and has no server; see the full [Privacy Policy](PRIVACY.md).
+
 ## License
 
 MIT, see [LICENSE](LICENSE).
