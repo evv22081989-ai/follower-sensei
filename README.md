@@ -6,7 +6,7 @@ A Claude plugin for Instagram audience analysis, built for creators, producers a
 
 0. **Getting started** (`start`) — a short welcome and four questions about the account, shown when the user arrives without a specific task.
 1. **Account and goals** (`account-brief`) — what the account is about, what it wants to achieve and who it is for; its core message, tone of voice, values and positioning; an account card the other steps build on.
-2. **Follower analysis** (`audience-analysis`) — who follows the account now (profile types, fields, language, suspicious accounts) and how the audience is changing (new followers and unfollowers, growth and churn), compared with the account's goals: is the audience moving where it should, and are there anomalies — for example, the wrong people arriving or key followers leaving.
+2. **Follower analysis** (`audience-analysis`) — who follows the account now (profile types, fields, language, suspicious accounts — saved to an Excel file with a confidence level and profile links for manual review, plus a separate tab of accounts that are probably real) and how the audience is changing (new followers and unfollowers, growth and churn), compared with the account's goals: is the audience moving where it should, and are there anomalies — for example, the wrong people arriving or key followers leaving.
 
 Then, offered by the plugin and only with the user's agreement:
 
@@ -38,7 +38,7 @@ Links to the extension in the plugin carry UTM tags (`utm_source=claude`, `utm_m
 
 - The plugin consists of instructions for Claude (`skills/*/SKILL.md`) and one Python script: `skills/audience-analysis/scripts/audience.py`.
 - The script uses only the Python standard library, runs locally on CSV files the user provides, and **sends nothing to the network and downloads nothing from it**. It computes summaries, compares lists and can save results to files in the working folder.
-- For PDF reports, Claude uses whatever tools are available in the user's environment; the plugin doesn't install packages itself.
+- To save the suspicious-accounts file as Excel (.xlsx), the script uses the openpyxl library if it's already installed; otherwise it saves CSV files. For PDF reports, Claude uses whatever tools are available in the user's environment. The plugin doesn't install packages itself.
 - The plugin has no hooks, MCP servers or external dependencies.
 - The plugin doesn't access Instagram and forbids Claude from collecting data from profiles automatically: that breaks Instagram's rules and personal data laws. The audience is analyzed as a whole, with no profiles of individual people.
 
