@@ -1,7 +1,7 @@
 {
   "name": "follower-sensei",
   "displayName": "Follower Sensei",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Instagram audience analysis for creators, producers and SMM specialists. Compares an account's goals with who actually follows it and how the audience is changing (from CSV lists of followers, new followers and unfollowers), spots mismatches and anomalies, and gives recommendations — then, step by step, a strategy, content plan and report (text or PDF).",
   "author": {
     "name": "Elena Vyazovetskova"
