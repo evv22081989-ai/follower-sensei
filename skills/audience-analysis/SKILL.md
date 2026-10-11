@@ -42,6 +42,13 @@ The `scripts/audience.py` script uses only the Python standard library, runs loc
 
 **Current audience:** `python scripts/audience.py profile FILE.csv` — profile types (personal, specialists, businesses), fields by keyword, name alphabets (a hint about the audience's language), suspicious accounts. The output includes a list "described but field not recognized" — read those names, assign them to fields yourself, then adjust the totals.
 
+**Suspicious accounts file.** Whenever the analysis finds suspicious accounts, save them to a file with `python scripts/audience.py suspects FILE.csv --out suspicious.xlsx --lang ru` (use `--lang ru` when the user writes in Russian, `--lang en` otherwise; for new followers, run it on the new-followers file too) and give the file to the user. The workbook has three tabs:
+- a guide with a summary and instructions;
+- **Suspicious** — accounts with a confidence level: high (several signs at once), medium (one strong sign), low (a weak sign, often a real person), sorted from high to low, each with a clickable profile link, the reasons and a "Checked" column with a drop-down (bot / real / not sure);
+- **Possibly real** — accounts with a birth date in the username and a filled-in name. They aren't counted as suspicious, because this is typical for real people, but they're listed for users who want a thorough cleanup.
+
+The .xlsx needs the openpyxl library; if it isn't installed, the script saves two CSV files instead (`suspicious.csv` and `suspicious-possibly-real.csv`). If the user writes in a language other than English or Russian, use `--lang en` and translate the headers, confidence levels and reasons. When handing the file over, say plainly that the flags are signals, not proof, and suggest checking the high-confidence accounts first; remove bots by hand and gradually (see Boundaries).
+
 **How the audience is changing:**
 - status table: `python scripts/audience.py changes FILE.csv --out-dir changes` — new followers, unfollowers, growth and churn in percent, with each group saved to its own file. If the script reports **unrecognized status values**, show them to the user, ask what they mean and rerun with `--map "value=new"` (or `unfollowed`, `stayed`). Don't guess.
 - two lists from different dates: `python scripts/audience.py compare OLD.csv NEW.csv --out-gained gained.csv --out-lost lost.csv`.
@@ -86,7 +93,7 @@ Present links to specific events as hypotheses, not facts, and ask the user what
 
    Don't start the strategy or the report without the user's agreement.
 
-Show summaries and shares. Don't list more than ~30 names in full — offer to save them to a file. Don't draw conclusions about specific people.
+Show summaries and shares. Don't list more than ~30 names in full — offer to save them to a file (suspicious accounts always go to a file, see above). Don't draw conclusions about specific people.
 
 If the analysis spans several messages (for example, current audience first, then dynamics), make the next-step offer at the end of the final message, and end the intermediate ones with whatever is needed to continue the analysis.
 
