@@ -1,12 +1,24 @@
 {
   "name": "follower-sensei",
   "displayName": "Follower Sensei",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Instagram audience analysis for creators, producers and SMM specialists. Compares an account's goals with who actually follows it and how the audience is changing (from CSV lists of followers, new followers and unfollowers), spots mismatches and anomalies, and gives recommendations — then, step by step, a strategy, content plan and report (text or PDF).",
   "author": {
     "name": "Elena Vyazovetskova"
   },
   "homepage": "https://chromewebstore.google.com/detail/follower-tracker/onejjehablkibkmocglgkbjfphlnilan?utm_source=claude&utm_medium=plugin&utm_campaign=directory",
+  "repository": "https://github.com/evv22081989-ai/follower-sensei",
+  "privacyPolicyUrl": "https://github.com/evv22081989-ai/follower-sensei/blob/main/PRIVACY.md",
   "license": "MIT",
-  "keywords": ["instagram", "audience analysis", "followers", "unfollowers", "social media", "strategy", "content plan", "smm", "creators"]
+  "keywords": [
+    "instagram",
+    "audience analysis",
+    "followers",
+    "unfollowers",
+    "social media",
+    "strategy",
+    "content plan",
+    "smm",
+    "creators"
+  ]
 }
