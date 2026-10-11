@@ -23,8 +23,11 @@ Global options (go BEFORE the command):
 changes options: --out-dir DIR --map "value=new|unfollowed|stayed" (repeatable) --show 30
 sample options: --n 40 --seed 1 --out sample.md
 profile options: --examples 5
+suspects FILE --out OUT.xlsx|OUT.csv --lang en|ru
+                             suspicious accounts (by confidence) + a separate "possibly real" list;
+                             .xlsx needs openpyxl (falls back to two CSV files if it's missing)
 """
-import argparse, csv, io, json, random, re, sys
+import argparse, csv, io, json, random, re, sys, unicodedata
 from collections import Counter, defaultdict
 
 URL_HINTS = ["url", "link", "href", "profile", "ссылка", "профиль", "username", "user name", "login", "логин",
@@ -288,21 +291,74 @@ def script_of(name):
     return top[1]
 
 
-def suspicious(username, name):
-    """Weak signs of a bot or throwaway account. Only a "check this" flag."""
-    reasons = []
-    u = re.sub(r"[._]", "", username)
-    digits = sum(c.isdigit() for c in u)
-    if digits >= 6 or (digits >= 4 and digits / max(len(u), 1) > 0.5):
-        reasons.append("many digits in username")
-    for part in re.split(r"[._\d]+", username.lower()):
+DATE_RE = re.compile(
+    r"(19[4-9]\d|20[0-2]\d)"                              # a birth or other year: 1940-2029
+    r"|(0[1-9]|[12]\d|3[01])[.\-_]?(0[1-9]|1[0-2])[.\-_]?(\d{2}|\d{4})(?!\d)"  # ddmmyy / dd.mm.yyyy
+    r"|(?<!\d)\d{2}[.\-_]?(0[1-9]|1[0-2])[.\-_]?(0[1-9]|[12]\d|3[01])(?!\d)"   # yymmdd / yy.mm.dd
+)
+
+
+def _random_letters(text):
+    text = unicodedata.normalize("NFKC", text)  # decorative fonts (𝒜𝓃𝒶) -> plain letters
+    for part in re.split(r"[\W._\d]+", text.lower()):
         lt = [c for c in part if c.isalpha()]
+        if any(not re.match(r"[a-zа-яё]", c) for c in lt):
+            continue  # vowel check only works for Latin and Cyrillic; skip other scripts
         run = max((len(m) for m in re.findall(r"[^aeiouyаеёиоуыэюя\W\d_]+", part)), default=0)
         if len(lt) >= 7 and sum(c in VOWELS for c in lt) / len(lt) < 0.2 and run >= 5:
-            reasons.append("random-looking letters"); break
-    if not name.strip() and digits >= 3:
-        reasons.append("empty name + digits in username")
-    return reasons
+            return True
+    return False
+
+
+def suspicious(username, name):
+    """Signs of a bot or throwaway account, with a rough score.
+
+    Returns (reasons, score). score 0 = not flagged. These are "check this" signals,
+    not proof: real people also use digits in usernames (often a birth date) or leave the name empty.
+    """
+    reasons, score = [], 0
+    u = re.sub(r"[._]", "", username)
+    digits = sum(c.isdigit() for c in u)
+    ratio = digits / max(len(u), 1)
+    name_letters = [c for c in name if c.isalpha()]
+    has_name = len(name_letters) >= 2 and not _random_letters(name)
+    date_like = bool(DATE_RE.search(username))
+
+    if _random_letters(username):
+        reasons.append("random-looking letters in username"); score += 2
+    if name_letters and _random_letters(name):
+        reasons.append("random-looking letters in name"); score += 1
+    many_digits = digits >= 6 or (digits >= 4 and ratio > 0.5)
+    username_letters = sum(c.isalpha() for c in u)
+    if not name_letters and digits >= 3:
+        if date_like:
+            # a name plus a birth date with an empty profile name is common for real people
+            reasons.append("no name; digits in username look like a date"); score += 1
+            if username_letters == 0:
+                reasons.append("username has no letters"); score += 1
+        else:
+            reasons.append("no name + digits in username"); score += 2
+            if many_digits:
+                reasons.append("username is mostly digits" if ratio > 0.6 else "many digits in username"); score += 1
+    elif many_digits and not date_like:
+        # digits next to a real name: weak signal; digits that look like a date: not flagged
+        reasons.append("many digits in username"); score += 1
+    return reasons, score
+
+
+def confidence(score):
+    return "high" if score >= 3 else "medium" if score == 2 else "low"
+
+
+def possibly_real(username, name):
+    """Accounts NOT flagged as suspicious only because the many digits in the username look like a
+    birth date and the profile has a real name. Usually real people; listed separately for an optional check."""
+    u = re.sub(r"[._]", "", username)
+    digits = sum(c.isdigit() for c in u)
+    many_digits = digits >= 6 or (digits >= 4 and digits / max(len(u), 1) > 0.5)
+    name_letters = [c for c in name if c.isalpha()]
+    has_name = len(name_letters) >= 2 and not _random_letters(name)
+    return many_digits and has_name and bool(DATE_RE.search(username)) and not suspicious(username, name)[1]
 
 
 _SPHERE_RE = {s: re.compile(r"(?<![^\W_])(?:" + "|".join(re.escape(k) for k in kws) + ")", re.I)
@@ -319,7 +375,7 @@ def cmd_profile(a):
     total = len(people)
     sphere_count, sphere_ex = Counter(), defaultdict(list)
     scripts, kinds = Counter(), Counter()
-    susp, unclassified_desc = [], []
+    susp, susp_rows, unclassified_desc = [], [], []
     for p in people.values():
         name, user = p["name"], p["username"]
         scripts[script_of(name)] += 1
@@ -339,20 +395,175 @@ def cmd_profile(a):
             sphere_count[s] += 1
             if len(sphere_ex[s]) < a.examples and (name or user) not in sphere_ex[s]:
                 sphere_ex[s].append(name or user)
-        r = suspicious(user, name)
-        if r:
-            susp.append(f"{user} ({', '.join(r)})")
+        r, score = suspicious(user, name)
+        if score:
+            susp.append(f"{user} [{confidence(score)}] ({', '.join(r)})")
+            susp_rows.append((p, r, score))
+    maybe_real = sum(possibly_real(p["username"], p["name"]) for p in people.values())
     out({
         "profiles": total,
         "profile type by name": {k: f"{v} ({pct(v, total)}%)" for k, v in kinds.most_common()},
         "fields by keyword (a profile can be in several)": {
             s: f"{c} ({pct(c, total)}%) — e.g.: {'; '.join(sphere_ex[s])}" for s, c in sphere_count.most_common()},
         "name alphabet": {k: f"{v} ({pct(v, total)}%)" for k, v in scripts.most_common()},
-        "suspicious — check by hand": f"{len(susp)} ({pct(len(susp), total)}%)",
+        "suspicious — check by hand": f"{len(susp)} ({pct(len(susp), total)}%): " + ", ".join(
+            f"{lvl} {sum(confidence(x[2]) == lvl for x in susp_rows)}" for lvl in ("high", "medium", "low")),
         "suspicious examples": susp[:30],
+        "possibly real (birth date in username + real name), not counted above": maybe_real,
+        "to save these lists to a file": "run the suspects command",
         "described but field not recognized (classify these yourself)": unclassified_desc[:300],
         "note": "Heuristic based on names and usernames: indicative, not a precise portrait. Most people put only their name in the profile name.",
     }, a.json)
+
+
+SUSPECT_TEXT = {
+    "en": {
+        "levels": {"high": "high", "medium": "medium", "low": "low"},
+        "reasons": {},
+        "possibly_reason": "birth date in username, real name",
+        "head": ["Confidence", "Username", "Name", "Profile URL", "Why flagged", "Checked (bot / real)"],
+        "check_values": "bot,real,not sure",
+        "sheet_guide": "How to use", "sheet_susp": "Suspicious", "sheet_maybe": "Possibly real",
+        "title": "Suspicious followers",
+        "source": "Source file: {file}. Profiles in the file: {total}.",
+        "summary": "Summary", "total": "Flagged as suspicious", "by_level": "— {lvl} confidence",
+        "maybe_total": "Possibly real (separate tab)", "checked_bot": "Checked: bot", "checked_real": "Checked: real",
+        "how_read": "How to read it",
+        "read": [
+            "High — several signs at once, e.g. no name and a username of mostly digits. Start checking with these.",
+            "Medium — one strong sign, e.g. no name and digits in the username, or random-looking letters.",
+            "Low — a weak sign, e.g. many digits in the username with a filled-in name. Many of these are real people.",
+            "Possibly real (separate tab) — a birth date in the username and a real name. Usually real people; check only if you want a thorough cleanup.",
+        ],
+        "how_check": "How to check",
+        "check": [
+            "1. Open the profile from the link on the Suspicious tab.",
+            "2. In the Checked column (yellow cells), pick from the list: bot, real or not sure.",
+            "3. Remove bots by hand and gradually — a few dozen a day. Mass removal can get the account restricted by Instagram.",
+        ],
+        "disclaimer": "The signs are signals, not proof: real people also have digits in their usernames or an empty name.",
+    },
+    "ru": {
+        "levels": {"high": "высокая", "medium": "средняя", "low": "низкая"},
+        "reasons": {
+            "random-looking letters in username": "случайный набор букв в нике",
+            "random-looking letters in name": "случайный набор букв в имени",
+            "no name + digits in username": "нет имени + цифры в нике",
+            "no name; digits in username look like a date": "нет имени; цифры в нике похожи на дату",
+            "username has no letters": "в нике нет букв",
+            "username is mostly digits": "ник почти из одних цифр",
+            "many digits in username": "много цифр в нике",
+        },
+        "possibly_reason": "дата рождения в нике, заполнено имя",
+        "head": ["Уверенность", "Ник", "Имя профиля", "Ссылка на профиль", "Почему отмечен", "Проверено (бот / живой)"],
+        "check_values": "бот,живой,не понятно",
+        "sheet_guide": "Как пользоваться", "sheet_susp": "Подозрительные", "sheet_maybe": "Скорее живые",
+        "title": "Подозрительные подписчики",
+        "source": "Файл: {file}. Профилей в файле: {total}.",
+        "summary": "Сводка", "total": "Подозрительных всего", "by_level": "— {lvl} уверенность",
+        "maybe_total": "Скорее живые (отдельная вкладка)", "checked_bot": "Проверено: бот", "checked_real": "Проверено: живой",
+        "how_read": "Как читать",
+        "read": [
+            "Высокая — несколько признаков сразу, например нет имени и ник почти из одних цифр. Начните проверку с них.",
+            "Средняя — один сильный признак, например нет имени и цифры в нике, или случайный набор букв.",
+            "Низкая — слабый признак, например много цифр в нике при заполненном имени. Многие из них живые люди.",
+            "Скорее живые (отдельная вкладка) — дата рождения в нике и заполненное имя. Обычно это живые люди; проверяйте, только если хотите тщательную чистку.",
+        ],
+        "how_check": "Как проверять",
+        "check": [
+            "1. Откройте профиль по ссылке во вкладке «Подозрительные».",
+            "2. В колонке «Проверено» (жёлтые ячейки) выберите из списка: бот, живой или не понятно.",
+            "3. Удаляйте ботов вручную и постепенно — несколько десятков в день. Массовое удаление может привести к ограничениям аккаунта в Instagram.",
+        ],
+        "disclaimer": "Признаки — это сигналы, а не доказательство: у живых людей тоже бывают ники с цифрами или пустое имя.",
+    },
+}
+
+
+def cmd_suspects(a):
+    import os
+    *_, people = load(a.file, a)
+    T = SUSPECT_TEXT[a.lang]
+    link = lambda p: p["url"] if p["url"].startswith("http") else f"https://www.instagram.com/{p['username']}/"
+    susp, maybe = [], []
+    for p in people.values():
+        r, sc = suspicious(p["username"], p["name"])
+        if sc:
+            susp.append((sc, p, "; ".join(T["reasons"].get(x, x) for x in r)))
+        elif possibly_real(p["username"], p["name"]):
+            maybe.append((0, p, T["possibly_reason"]))
+    susp.sort(key=lambda x: (-x[0], x[1]["username"])); maybe.sort(key=lambda x: x[1]["username"])
+    rows = lambda items, lvl=None: [[lvl or T["levels"][confidence(sc)], p["username"], p["name"], link(p), why, ""]
+                                    for sc, p, why in items]
+    susp_rows, maybe_rows = rows(susp), rows(maybe, "—")
+
+    xlsx = a.out.lower().endswith(".xlsx")
+    if xlsx:
+        try:
+            import openpyxl  # optional: only used when it's already installed
+        except ImportError:
+            xlsx = False
+            a.out = a.out[:-5] + ".csv"
+            print("openpyxl is not installed: saving CSV files instead of .xlsx")
+    if not xlsx:
+        base = a.out[:-4] if a.out.lower().endswith(".csv") else a.out
+        for path, data in ((base + ".csv", susp_rows), (base + "-possibly-real.csv", maybe_rows)):
+            with open(path, "w", newline="", encoding="utf-8-sig") as f:
+                w = csv.writer(f); w.writerow(T["head"]); w.writerows(data)
+        saved = f"{base}.csv, {base}-possibly-real.csv"
+    else:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment
+        from openpyxl.worksheet.datavalidation import DataValidation
+        FONT = "Arial"
+        fills = {T["levels"]["high"]: "F4C7C3", T["levels"]["medium"]: "FCE8B2", T["levels"]["low"]: "E8EAED", "—": "E6F4EA"}
+        wb = Workbook()
+        guide = wb.active; guide.title = T["sheet_guide"]
+
+        def data_sheet(title, data):
+            ws = wb.create_sheet(title); ws.append(T["head"])
+            for c in ws[1]:
+                c.font = Font(name=FONT, bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor="3C4043")
+                c.alignment = Alignment(vertical="center", wrap_text=True)
+            for row in data:
+                ws.append(row); i = ws.max_row
+                for c in ws[i]: c.font = Font(name=FONT)
+                ws.cell(i, 1).fill = PatternFill("solid", fgColor=fills.get(row[0], "FFFFFF"))
+                ws.cell(i, 4).hyperlink = row[3]; ws.cell(i, 4).font = Font(name=FONT, color="1A73E8", underline="single")
+                ws.cell(i, 6).fill = PatternFill("solid", fgColor="FFF8C5")
+            for col, wdt in zip("ABCDEF", [13, 26, 30, 44, 46, 24]): ws.column_dimensions[col].width = wdt
+            ws.freeze_panes = "A2"; last = max(ws.max_row, 2)
+            ws.auto_filter.ref = f"A1:F{last}"
+            dv = DataValidation(type="list", formula1=f'"{T["check_values"]}"', allow_blank=True)
+            ws.add_data_validation(dv); dv.add(f"F2:F{last}")
+            return ws, last
+
+        _, n1 = data_sheet(T["sheet_susp"], susp_rows)
+        _, n2 = data_sheet(T["sheet_maybe"], maybe_rows)
+        sq = lambda t: "'" + t.replace("'", "''") + "'"
+        S1, S2 = sq(T["sheet_susp"]), sq(T["sheet_maybe"])
+        bot, real = T["check_values"].split(",")[:2]
+        lines = [(T["title"], None), (T["source"].format(file=os.path.basename(a.file), total=len(people)), None), ("", None),
+                 (T["summary"], None), (T["total"], f"=COUNTA({S1}!A2:A{n1})")]
+        lines += [(T["by_level"].format(lvl=T["levels"][k]), f'=COUNTIF({S1}!A2:A{n1},"{T["levels"][k]}")')
+                  for k in ("high", "medium", "low")]
+        lines += [(T["maybe_total"], f"=COUNTA({S2}!A2:A{n2})"),
+                  (T["checked_bot"], f'=COUNTIF({S1}!F2:F{n1},"{bot}")+COUNTIF({S2}!F2:F{n2},"{bot}")'),
+                  (T["checked_real"], f'=COUNTIF({S1}!F2:F{n1},"{real}")+COUNTIF({S2}!F2:F{n2},"{real}")'),
+                  ("", None), (T["how_read"], None)] + [(x, None) for x in T["read"]]
+        lines += [("", None), (T["how_check"], None)] + [(x, None) for x in T["check"]] + [("", None), (T["disclaimer"], None)]
+        heads = {T["summary"], T["how_read"], T["how_check"]}
+        for text, formula in lines:
+            guide.append([text, formula]); i = guide.max_row
+            guide.cell(i, 1).font = Font(name=FONT, bold=text in heads)
+            if formula: guide.cell(i, 2).font = Font(name=FONT, bold=True)
+        guide["A1"].font = Font(name=FONT, bold=True, size=14)
+        guide.column_dimensions["A"].width = 110; guide.column_dimensions["B"].width = 12
+        wb.active = 0; wb.save(a.out); saved = a.out
+    by = Counter(confidence(sc) for sc, _, _ in susp)
+    out({"profiles": len(people), "suspicious": len(susp),
+         "by confidence": {k: by.get(k, 0) for k in ("high", "medium", "low")},
+         "possibly real (separate list)": len(maybe), "saved": saved}, a.json)
 
 
 def cmd_sample(a):
@@ -387,7 +598,10 @@ def main():
     s = sub.add_parser("compare"); s.add_argument("old"); s.add_argument("new")
     s.add_argument("--out-gained"); s.add_argument("--out-lost"); s.set_defaults(fn=cmd_compare)
     s = sub.add_parser("mutual"); s.add_argument("followers"); s.add_argument("following"); s.set_defaults(fn=cmd_mutual)
-    s = sub.add_parser("profile"); s.add_argument("file"); s.add_argument("--examples", type=int, default=5); s.set_defaults(fn=cmd_profile)
+    s = sub.add_parser("profile"); s.add_argument("file"); s.add_argument("--examples", type=int, default=5)
+    s.set_defaults(fn=cmd_profile)
+    s = sub.add_parser("suspects"); s.add_argument("file"); s.add_argument("--out", required=True)
+    s.add_argument("--lang", choices=["en", "ru"], default="en"); s.set_defaults(fn=cmd_suspects)
     s = sub.add_parser("sample"); s.add_argument("file"); s.add_argument("--n", type=int, default=40)
     s.add_argument("--seed", type=int, default=None); s.add_argument("--out"); s.set_defaults(fn=cmd_sample)
     a = p.parse_args(); a.fn(a)
